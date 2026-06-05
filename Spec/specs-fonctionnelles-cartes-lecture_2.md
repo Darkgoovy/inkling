@@ -469,11 +469,11 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 
 ---
 
-## Annexe A — Prompt de génération du JSON d'un livre (pleine longueur)
+## Annexe A — Prompt de génération du JSON d'un livre (agentique, écrit le fichier en une passe)
 
-> À lancer dans une **session dédiée** (modèle à grande capacité de sortie de préférence) pour produire `books/<id>.json`. Remplacer `{{TITRE}}` et `{{AUTEUR}}`. L'IA rédige **chaque carte à pleine longueur** (~10 min) avec ses **questions de quiz** intégrées, carte par carte, et renvoie **uniquement** le JSON conforme aux §4.2 et §4.4.
+> **Mode d'emploi.** Ouvre une session **Claude Code** (ou tout agent disposant d'outils d'écriture de fichiers) **à la racine de ce dépôt**, remplace `{{TITRE}}` et `{{AUTEUR}}`, et colle le prompt ci-dessous. L'agent **écrit directement** le fichier `public/books/<slug>.json` — carte par carte, en éditant le fichier au fur et à mesure — puis le **valide** et **régénère l'index**. Il n'y a **rien à copier-coller** et **aucun « continue »** à taper : tout se fait en un seul lancement.
 >
-> Si la réponse est coupée par une limite de longueur, écrire « continue » : l'IA reprend à la carte suivante, et la **concaténation** des réponses forme un seul JSON valide (voir « Protocole de continuation » dans le prompt).
+> Pourquoi ça marche : un agent qui écrit dans un fichier n'est pas soumis à la limite de longueur d'un message de chat. La raison d'être de l'ancien « protocole de continuation » disparaît donc.
 
 ```
 Tu es un expert en synthèse de livres de développement personnel. Ta mission : produire des FICHES DE LECTURE complètes et approfondies, qui permettent de réviser un livre et d'en retenir l'essentiel sans avoir à le relire.
@@ -482,13 +482,17 @@ LIVRE À TRAITER
 - Titre : {{TITRE}}
 - Auteur : {{AUTEUR}}
 
-PROCÉDURE (à suivre dans cet ordre)
-1. Établis d'abord, pour toi-même, le PLAN COMPLET du deck : la liste ordonnée de toutes les cartes nécessaires pour couvrir l'INTÉGRALITÉ du livre (une carte = un chapitre ou un sous-chapitre cohérent). Ne montre pas ce plan ; il sert à cadrer ton travail.
-2. Rédige ensuite les cartes UNE PAR UNE, dans l'ordre, chacune entièrement développée, de la première à la toute dernière. Traite chaque carte comme un travail indépendant et complet.
-3. Ne t'arrête pas tant que le livre n'est pas couvert en entier. Ne saute aucun chapitre, ne tronque pas la fin du livre.
+PROCÉDURE (à suivre dans cet ordre, en autonomie complète)
+1. Détermine le <slug> du livre à partir du titre (minuscules, mots séparés par des tirets, sans apostrophes ni accents si possible). Le fichier cible est `public/books/<slug>.json`.
+2. Établis d'abord, pour toi-même, le PLAN COMPLET du deck : la liste ordonnée de toutes les cartes nécessaires pour couvrir l'INTÉGRALITÉ du livre (une carte = un chapitre ou un sous-chapitre cohérent). Ce plan sert à cadrer ton travail.
+3. Crée le fichier `public/books/<slug>.json` avec l'en-tête du livre (version, id, title, author, cover, accentColor) et la PREMIÈRE carte entièrement développée.
+4. AJOUTE ensuite les cartes UNE PAR UNE, dans l'ordre, en éditant le fichier à chaque fois, chacune entièrement développée, de la première à la toute dernière. Traite chaque carte comme un travail indépendant et complet.
+5. Ne t'arrête pas tant que le livre n'est pas couvert en entier. Ne saute aucun chapitre, ne tronque pas la fin du livre.
+6. Quand toutes les cartes sont écrites, passe à la phase VALIDATION ET FINALISATION (plus bas).
 
 EXIGENCE DE LONGUEUR — IMPÉRATIVE
-- Chaque "summary" doit faire ENVIRON 1500 mots, et JAMAIS MOINS DE 1200 mots. C'est une fiche de ~10 minutes de lecture : développe pleinement.
+- Chaque "summary" doit faire ENVIRON 1200 à 1500 mots, et JAMAIS MOINS DE 1000 mots. C'est une fiche de ~10 minutes de lecture : développe pleinement.
+- Compte réellement les mots de chaque résumé : en français, vise large, car on sous-estime facilement (un résumé qui « paraît » long fait souvent à peine 750 mots). Si une carte est trop courte, étoffe-la avant de continuer.
 - Ne condense pas, ne résume pas en accéléré, n'écris jamais de raccourcis du type « etc. », « et ainsi de suite » ou « (à développer) » pour éviter d'écrire le contenu.
 - Le fait qu'il y ait beaucoup de cartes n'est JAMAIS une raison de raccourcir : chaque carte garde sa pleine longueur, même la dixième ou la vingtième.
 - Développe chaque résumé avec : le contexte, les concepts clés, les mécanismes expliqués, des exemples concrets, les nuances de l'auteur, et la mise en application. Paragraphes lisibles.
@@ -503,13 +507,13 @@ POUR CHAQUE CARTE, produis :
 - title : un titre court et parlant.
 - subtitle : un sous-titre qui précise l'angle de la carte.
 - tags : EXACTEMENT 3 mots-clés (thèmes de la carte), courts.
-- summary : le résumé approfondi du passage (~1500 mots, 1200 minimum).
+- summary : le résumé approfondi du passage (~1200-1500 mots, 1000 minimum).
 - keyIdea : UNE seule phrase résumant l'idée clé du passage.
 - action : UNE seule phrase décrivant une action concrète à appliquer après cette lecture.
 - estimatedMinutes : 10.
 - order : numéro d'ordre de lecture (1, 2, 3, …), sans trou ni doublon.
 - id : identifiant unique, au format "<slug>-cNN" où <slug> est dérivé du titre du livre (minuscules, mots séparés par des tirets), et NN le numéro d'ordre sur 2 chiffres (ex. "atomic-habits-c01").
-- questions : un tableau de 5 questions de quiz à choix multiple portant sur le contenu de CETTE carte. Chaque question contient :
+- questions : un tableau de 4 à 5 questions de quiz à choix multiple portant sur le contenu de CETTE carte. Chaque question contient :
     - id : "<idDeLaCarte>-qN" (ex. "atomic-habits-c01-q1").
     - question : l'énoncé, clair et sans ambiguïté.
     - choices : EXACTEMENT 4 propositions plausibles (1 seule correcte, 3 fausses mais crédibles).
@@ -524,10 +528,10 @@ CHAMPS DU LIVRE :
 - cover : "<slug>.jpg".
 - accentColor : un code hexadécimal d'une teinte PASTEL et CHALEUREUSE (pêche, sable, terracotta doux, sauge…), cohérente avec l'ambiance du livre.
 
-FORMAT DE SORTIE — RÈGLES STRICTES
-- Réponds UNIQUEMENT par du JSON valide, RIEN d'autre : aucune phrase d'introduction, aucun commentaire, AUCUN bloc de code Markdown (pas de triple accent grave), aucun texte après le JSON.
-- Échappe correctement les caractères spéciaux dans les chaînes (guillemets, retours à la ligne).
-- Respecte EXACTEMENT cette structure :
+OÙ ÉCRIRE — TU PRODUIS UN FICHIER, PAS UN MESSAGE
+- Écris directement le fichier `public/books/<slug>.json` avec tes outils (Write/Edit). Ne colle PAS le JSON dans la conversation.
+- Procède de façon incrémentale : crée le fichier avec l'en-tête + la première carte, puis ajoute chaque carte suivante en éditant le fichier. Aucune limite de longueur de message ne te concerne, et tu n'as jamais besoin qu'on te dise « continue ».
+- Le JSON final doit être valide et correctement échappé (guillemets, retours à la ligne en \n). Respecte EXACTEMENT cette structure :
 
 {
   "version": 1,
@@ -560,18 +564,18 @@ FORMAT DE SORTIE — RÈGLES STRICTES
   ]
 }
 
-PROTOCOLE DE CONTINUATION (si la réponse atteint une limite de longueur)
-- Ne réduis JAMAIS la longueur ni la qualité des cartes pour « faire tenir » tout le deck dans une seule réponse.
-- Si tu approches de la limite, termine ta réponse JUSTE APRÈS un objet-carte complet : après l'accolade fermante de la carte « } » suivie d'une virgule, sans aucun autre texte, sans fermer le tableau ni l'objet racine.
-- Ne ferme le JSON (« ] » puis « } ») QUE dans la réponse contenant la toute dernière carte.
-- Quand je répondrai « continue », reprends EXACTEMENT à la carte suivante (un nouvel objet-carte), sans préambule, sans répéter ce qui précède, sans rouvrir l'objet racine. La simple concaténation de tes réponses, dans l'ordre, doit former un seul JSON valide.
+PAS DE PROTOCOLE DE CONTINUATION
+- Tu écris dans un fichier, pas dans un message : il n'y a donc AUCUNE limite de longueur à gérer et aucun « continue » à attendre. Déroule toutes les cartes d'affilée, en éditant le fichier au fur et à mesure, jusqu'à la dernière. Ne réduis jamais la longueur ni la qualité d'une carte pour « gagner du temps ».
 
-CONTRÔLES AVANT D'ENVOYER
-- Le deck couvre tout le livre, dans l'ordre, sans trou dans "order".
-- Chaque "summary" fait au moins 1200 mots.
-- Chaque carte a EXACTEMENT 3 tags ; "keyIdea" et "action" font chacune UNE phrase.
-- Chaque carte a 5 questions ; chaque question a EXACTEMENT 4 "choices" et un "answerIndex" valide (0–3).
-- Le JSON (une fois les éventuelles continuations concaténées) est valide et parsable.
+VALIDATION ET FINALISATION (à faire toi-même, en autonomie, sans rien demander)
+- Relis le fichier et vérifie : "order" continu de 1 à N (sans trou ni doublon) ; l'"id" du livre est identique au nom de fichier (<slug>.json) ; chaque carte a EXACTEMENT 3 tags ; "keyIdea" et "action" font chacune UNE phrase ; chaque carte a 4 à 5 questions ; chaque question a EXACTEMENT 4 "choices" et un "answerIndex" valide (0–3) ; les "id" de questions suivent le format "<idCarte>-qN".
+- Compte les mots de chaque "summary". Si une carte fait moins de 1000 mots, ÉTOFFE-la (contexte, exemples concrets, nuances, mise en application) jusqu'à atteindre la cible — ne finalise pas tant qu'une carte est trop courte.
+- Vérifie que le JSON est parsable (corrige tout échappement fautif).
+- Régénère l'index : exécute `npm run build:index` (ou `python build_books_index.py --books-dir public/books --output public/books.json`).
+- Termine par un court récapitulatif : titre, nombre de cartes, total de questions, et nombre de mots par carte.
+
+ASTUCE DE ROBUSTESSE (recommandée pour de gros volumes)
+- Pour fiabiliser l'écriture et l'échappement, tu peux passer par un petit script Python qui contient les textes en chaînes triples et écrit le JSON via `json.dump(..., ensure_ascii=False, indent=2)` : Python gère alors automatiquement l'échappement (guillemets, retours à la ligne). C'est la méthode la plus sûre pour les longues cartes.
 ```
 
 ---
@@ -592,4 +596,4 @@ Comportement clé : ignore les fichiers JSON invalides ou incomplets (avec avert
 
 ---
 
-*Document de spécifications fonctionnelles — v1.4. Ajout du quiz QCM après chaque carte avec révision espacée (système de Leitner) ; questions intégrées aux cartes ; gamification et prompt (Annexe A) mis à jour en conséquence.*
+*Document de spécifications fonctionnelles — v1.5. Annexe A réécrite en mode « agentique » : l'agent (Claude Code) écrit directement le fichier du livre carte par carte, le valide et régénère l'index, en une seule passe et sans « continue » manuel. (v1.4 : ajout du quiz QCM après chaque carte avec révision espacée — système de Leitner ; questions intégrées aux cartes.)*
