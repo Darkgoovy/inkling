@@ -1,0 +1,31 @@
+# Déploiement Netlify — site statique généré dans dist/.
+# Brancher le dépôt sur netlify.com (« Add new site » → « Import an existing project »)
+# ou faire un simple glisser-déposer du dossier dist/.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Le build a besoin de Node ET de Python (étape prebuild : build_books_index.py).
+  NODE_VERSION = "20"
+  PYTHON_VERSION = "3.12"
+
+# HashRouter n'en a pas strictement besoin, mais ceci sécurise tout accès direct
+# à une URL en renvoyant l'app (SPA fallback).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# En-têtes : ne jamais mettre en cache le service worker ni l'index des livres,
+# pour que les mises à jour soient prises en compte rapidement.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/books.json"
+  [headers.values]
+    Cache-Control = "no-cache"

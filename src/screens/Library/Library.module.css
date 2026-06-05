@@ -1,0 +1,227 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-7);
+  padding-top: calc(var(--space-5) + env(safe-area-inset-top));
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.hello {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.brand {
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.iconBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--text-soft);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition), color var(--transition);
+}
+.iconBtn:active {
+  transform: scale(0.92);
+}
+
+.statsRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.streakChip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.streakChip strong {
+  font-size: 1.15rem;
+}
+
+.levelChip {
+  flex: 1;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.levelName {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.levelXp {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.muted {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Bloc Reprendre */
+.resume {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: left;
+  width: 100%;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  color: var(--accent-text);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition);
+}
+.resume:active {
+  transform: scale(0.98);
+}
+.resumeIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+}
+.resumeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.resumeLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+.resumeTitle {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resumeSub {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.sectionTitle {
+  font-size: 1.15rem;
+  margin-top: var(--space-2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bookRow {
+  display: flex;
+  gap: var(--space-4);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition);
+}
+.bookRow:active {
+  transform: scale(0.985);
+}
+
+.bookInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.bookHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.bookTitle {
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.author {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+.bookMeta {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+.doneBadge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--success);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.global {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  margin-top: var(--space-3);
+  line-height: 1.5;
+}

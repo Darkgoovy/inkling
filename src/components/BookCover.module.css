@@ -1,0 +1,43 @@
+.cover {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+  aspect-ratio: 3 / 4;
+}
+
+.sm {
+  width: 56px;
+}
+.md {
+  width: 76px;
+}
+.lg {
+  width: 120px;
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.initials {
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.4rem;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+.lg .initials {
+  font-size: 2.2rem;
+}
+.sm .initials {
+  font-size: 1.1rem;
+}

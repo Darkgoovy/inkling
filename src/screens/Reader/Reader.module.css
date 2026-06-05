@@ -1,0 +1,147 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.statusScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  color: var(--text-soft);
+  padding: var(--space-5);
+}
+
+.linkBtn {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* Barre supérieure */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-4) var(--space-3);
+  position: relative;
+}
+.backBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;
+  transition: transform var(--transition);
+}
+.backBtn:active {
+  transform: scale(0.92);
+}
+.topInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.bookTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70vw;
+}
+.position {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.topProgress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--surface-2);
+}
+.topProgressFill {
+  height: 100%;
+  background: var(--book-accent, var(--accent));
+  transition: width var(--transition);
+}
+
+/* Scène de la carte (zone de swipe) */
+.stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  padding: var(--space-3) var(--space-4) 0;
+  overflow: hidden;
+  perspective: 1000px;
+}
+.cardWrap {
+  position: absolute;
+  inset: var(--space-3) var(--space-4) 0;
+  touch-action: pan-y;
+  will-change: transform;
+}
+
+/* Hints de navigation */
+.navHints {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) calc(var(--space-3) + env(safe-area-inset-bottom));
+}
+.navArrow {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  flex-shrink: 0;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.navArrow:disabled {
+  opacity: 0.35;
+}
+.navArrow:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.dots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  flex: 1;
+  max-width: 70%;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background var(--transition), transform var(--transition);
+}
+.dotRead {
+  background: color-mix(in srgb, var(--book-accent, var(--accent)) 55%, var(--border));
+}
+.dotActive {
+  background: var(--book-accent, var(--accent));
+  transform: scale(1.5);
+}

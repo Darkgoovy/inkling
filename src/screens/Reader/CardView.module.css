@@ -1,0 +1,141 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-5) var(--space-4);
+  -webkit-overflow-scrolling: touch;
+}
+
+.head {
+  margin-bottom: var(--space-4);
+}
+.title {
+  font-size: 1.75rem;
+  line-height: 1.18;
+  margin-bottom: var(--space-2);
+}
+.subtitle {
+  color: var(--text-soft);
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+/* Tags colorés (rotation sur 3 teintes vives) */
+.tag0 {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  color: var(--accent-text);
+}
+.tag1 {
+  background: color-mix(in srgb, var(--sage) 22%, var(--surface));
+  color: color-mix(in srgb, var(--sage) 78%, var(--text));
+}
+.tag2 {
+  background: color-mix(in srgb, var(--brume) 24%, var(--surface));
+  color: color-mix(in srgb, var(--brume) 80%, var(--text));
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+.summary p {
+  margin: 0;
+}
+
+.box {
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+.boxHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+.idea {
+  background: color-mix(in srgb, var(--gold) 18%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.idea .boxHead {
+  color: color-mix(in srgb, var(--gold) 75%, var(--text));
+}
+.action {
+  background: color-mix(in srgb, var(--sage) 18%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--sage) 35%, transparent);
+}
+.action .boxHead {
+  color: color-mix(in srgb, var(--sage) 70%, var(--text));
+}
+.box p {
+  font-size: 1rem;
+}
+
+.minutes {
+  margin-top: var(--space-5);
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.footer {
+  padding: var(--space-4) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.validate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--book-accent, var(--accent));
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-soft);
+  transition: transform 120ms ease;
+}
+.validate:active {
+  transform: scale(0.97);
+}
+.validated {
+  background: var(--surface-2);
+  color: var(--text-soft);
+  box-shadow: none;
+}

@@ -1,0 +1,171 @@
+/* ==========================================================================
+   Inkling — design system (cf. spec §10 : pastels chaleureux, épuré, doux)
+   Thème via variables CSS + attribut data-theme sur <html>.
+   ========================================================================== */
+
+/* Polices web (chaleureuses mais lisibles) — doit précéder les autres règles */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Typographie */
+  --font-title: "Fraunces", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Rayons & ombres */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow-soft: 0 6px 24px rgba(80, 60, 40, 0.08);
+  --shadow-card: 0 12px 40px rgba(80, 60, 40, 0.12);
+
+  /* Espacement */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --maxw: 560px;
+
+  --transition: 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---- Thème clair (pastels chaleureux mais vifs) ---- */
+:root,
+[data-theme="light"] {
+  --bg: #fbefe3;
+  --bg-elev: #fff6ec;
+  --surface: #ffffff;
+  --surface-2: #fbe6d4;
+  --text: #38292a;
+  --text-soft: #8a6f62;
+  --text-faint: #b79f8f;
+  --border: #f2ddc9;
+  --accent: #ff7a59;
+  --accent-soft: #ffe0d2;
+  --accent-text: #c8492a;
+  --sage: #2fae7a;
+  --brume: #3f9fcf;
+  --gold: #f2a23b;
+  --berry: #f0567f;
+  --violet: #a376e0;
+  --success: #29ad62;
+  --danger: #e5503a;
+  --stamp: #ff7a59;
+  --shadow-soft: 0 6px 22px rgba(200, 90, 50, 0.1);
+  --shadow-card: 0 16px 46px rgba(200, 90, 50, 0.18);
+}
+
+/* ---- Thème sombre (mêmes teintes, fonds profonds mais doux) ---- */
+[data-theme="dark"] {
+  --bg: #1f1718;
+  --bg-elev: #2a2022;
+  --surface: #2f2426;
+  --surface-2: #3a2c2e;
+  --text: #f4e9df;
+  --text-soft: #cbb5a7;
+  --text-faint: #957f72;
+  --border: #473538;
+  --accent: #ff8a6b;
+  --accent-soft: #50302a;
+  --accent-text: #ffb89f;
+  --sage: #4fd29b;
+  --brume: #65bbdd;
+  --gold: #f6bb5c;
+  --berry: #ff7a9b;
+  --violet: #bb96f0;
+  --success: #46c97c;
+  --danger: #f1705a;
+  --stamp: #ff8a6b;
+  --shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 16px 46px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-title);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.15;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Conteneur centré, limité en largeur sur desktop, plein écran sur mobile */
+.app-shell {
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Accessibilité : préférence « réduire les animations » (cf. spec §7.3) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

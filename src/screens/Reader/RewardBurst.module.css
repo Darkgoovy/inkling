@@ -1,0 +1,53 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.checkBubble {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.xp {
+  position: absolute;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--gold);
+}
+
+.toast {
+  position: absolute;
+  bottom: calc(var(--space-7) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  max-width: 80%;
+  text-align: center;
+}
+.xpGain {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--accent-text);
+}
+.line {
+  font-size: 0.9rem;
+  color: var(--text);
+}

@@ -1,0 +1,162 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-4) var(--space-7);
+  padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.backBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition);
+}
+.backBtn:active {
+  transform: scale(0.92);
+}
+.heading {
+  flex: 1;
+  font-size: 1.4rem;
+}
+.spacer {
+  width: 40px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.groupTitle {
+  font-size: 1.05rem;
+}
+.hint {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  margin-top: -4px;
+}
+
+.goals {
+  display: flex;
+  gap: var(--space-2);
+}
+.goal {
+  flex: 1;
+  aspect-ratio: 1;
+  max-width: 64px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--text-soft);
+  transition: transform var(--transition), background var(--transition), color var(--transition);
+}
+.goalActive {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.segmented {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+}
+.seg {
+  flex: 1;
+  padding: var(--space-3);
+  border-radius: calc(var(--radius-md) - 4px);
+  font-weight: 600;
+  color: var(--text-soft);
+  transition: background var(--transition), color var(--transition);
+}
+.segActive {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+}
+
+.about {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.version {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+/* Zone Données discrète */
+.dataZone {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px dashed var(--border);
+}
+.dataTitle {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.resetLink {
+  align-self: flex-start;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.resetLink:hover {
+  color: var(--danger);
+}
+
+.confirm {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.confirmText {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.confirmActions {
+  display: flex;
+  gap: var(--space-3);
+}
+.cancel {
+  flex: 1;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+.confirmReset {
+  flex: 1;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
