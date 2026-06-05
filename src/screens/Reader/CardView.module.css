@@ -7,6 +7,10 @@
   box-shadow: var(--shadow-card);
   overflow: hidden;
   border: 1px solid var(--border);
+  /* Évite que glisser depuis le texte/titre déclenche une sélection (souris)
+     au lieu du swipe. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .scroll {
@@ -14,6 +18,9 @@
   overflow-y: auto;
   padding: var(--space-6) var(--space-5) var(--space-4);
   -webkit-overflow-scrolling: touch;
+  /* Le scroll vertical reste natif ; les gestes horizontaux sont laissés
+     au swipe (Framer Motion), même quand on part du texte ou du titre. */
+  touch-action: pan-y;
 }
 
 .head {
