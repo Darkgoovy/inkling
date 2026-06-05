@@ -83,6 +83,8 @@ export interface BadgeDef {
 const MORNING_TARGET = 5;
 const MARATHON_TARGET = 5;
 const BIBLIOPHILE_TARGET = 3;
+const REVIEWER_TARGET = 20;
+const ONFIRE_TARGET = 10;
 
 export const BADGES: BadgeDef[] = [
   {
@@ -134,7 +136,40 @@ export const BADGES: BadgeDef[] = [
     description: `${MARATHON_TARGET} cartes lues dans la journée`,
     earned: (s) => s.stats.bestDayCount >= MARATHON_TARGET,
   },
+  {
+    id: "flawless",
+    emoji: "🎯",
+    name: "Sans-faute",
+    description: "Un quiz réussi à 100 %",
+    earned: (s) => s.quiz.perfectQuizCount >= 1,
+  },
+  {
+    id: "elephant",
+    emoji: "🧠",
+    name: "Mémoire d'éléphant",
+    description: "Une question portée en boîte 5",
+    earned: (s) => Object.values(s.quiz.questionStates).some((q) => q.box >= 5),
+  },
+  {
+    id: "reviewer",
+    emoji: "🔁",
+    name: "Réviseur",
+    description: `${REVIEWER_TARGET} révisions réussies`,
+    earned: (s) => s.quiz.reviewCorrectTotal >= REVIEWER_TARGET,
+  },
+  {
+    id: "onfire",
+    emoji: "💯",
+    name: "En feu",
+    description: `${ONFIRE_TARGET} bonnes réponses d'affilée`,
+    earned: (s) => s.quiz.bestCorrectStreak >= ONFIRE_TARGET,
+  },
 ];
+
+/** Badges débloqués par l'état courant et pas encore enregistrés. */
+export function pendingBadges(state: GameState): BadgeDef[] {
+  return BADGES.filter((b) => !state.unlockedBadges.includes(b.id) && b.earned(state));
+}
 
 export function badgeById(id: string): BadgeDef | undefined {
   return BADGES.find((b) => b.id === id);
@@ -148,6 +183,8 @@ export function totalReadCards(s: GameState): number {
 
 export const XP_PER_CARD = 10;
 export const XP_BOOK_COMPLETE = 50;
+export const XP_CORRECT_ANSWER = 5;
+export const XP_PERFECT_QUIZ = 10;
 const STREAK_BONUS_PER_DAY = 2;
 const STREAK_BONUS_CAP = 20;
 
@@ -163,13 +200,16 @@ export interface ValidationRewards {
 }
 
 /**
- * Valide une carte (« J'ai lu ») de façon immuable : renvoie le nouvel état
- * et les récompenses obtenues. Relire une carte déjà lue ne donne rien.
+ * Enregistre la lecture d'une carte (« J'ai lu », après le quiz) de façon
+ * immuable : marque la carte lue, attribue l'XP de lecture, le bonus de quiz
+ * parfait, met à jour série/jours actifs et évalue les badges. Relire une carte
+ * déjà lue ne redonne pas d'XP de lecture.
  */
-export function validateCard(
+export function recordCardRead(
   state: GameState,
   book: Book,
   cardId: string,
+  perfectQuiz: boolean,
   now: Date = new Date(),
 ): { state: GameState; rewards: ValidationRewards } {
   const today = todayKey(now);
@@ -238,6 +278,12 @@ export function validateCard(
     : state.completedBooks;
   if (bookCompleted) xpGained += XP_BOOK_COMPLETE;
 
+  // Bonus de quiz parfait (cf. spec §9.1).
+  if (perfectQuiz) xpGained += XP_PERFECT_QUIZ;
+  const quiz = perfectQuiz
+    ? { ...state.quiz, perfectQuizCount: state.quiz.perfectQuizCount + 1 }
+    : state.quiz;
+
   let next: GameState = {
     ...state,
     lastBookId: book.id,
@@ -248,10 +294,11 @@ export function validateCard(
     progress,
     completedBooks,
     stats,
+    quiz,
   };
 
   // Badges débloqués par ce nouvel état
-  const newBadges = BADGES.filter((b) => !next.unlockedBadges.includes(b.id) && b.earned(next));
+  const newBadges = pendingBadges(next);
   if (newBadges.length > 0) {
     next = { ...next, unlockedBadges: [...next.unlockedBadges, ...newBadges.map((b) => b.id)] };
   }

@@ -10,12 +10,15 @@ import {
 import type { ReactNode } from "react";
 import type { Book, GameState, ThemePref } from "../types";
 import { clearState, defaultState, loadState, saveState } from "../lib/storage";
-import { validateCard, type ValidationRewards } from "../lib/gamification";
+import { recordCardRead, type ValidationRewards } from "../lib/gamification";
+import { recordQuizAnswer, type AnswerRewards, type QuizItem } from "../lib/quiz";
 
 interface GameContextValue {
   state: GameState;
-  /** Valide une carte (« J'ai lu ») et renvoie les récompenses obtenues. */
-  readCard: (book: Book, cardId: string) => ValidationRewards;
+  /** Enregistre une réponse au quiz et renvoie les récompenses (XP, badges). */
+  answerQuestion: (item: QuizItem, correct: boolean) => AnswerRewards;
+  /** Marque la carte lue après le quiz (XP de lecture + bonus quiz parfait). */
+  finishCardRead: (book: Book, cardId: string, perfectQuiz: boolean) => ValidationRewards;
   /** Mémorise la dernière position vue (sans validation). */
   rememberPosition: (bookId: string, cardId: string) => void;
   setDailyGoal: (goal: number) => void;
@@ -38,15 +41,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return applyTheme(state.settings.theme);
   }, [state.settings.theme]);
 
-  const readCard = useCallback<GameContextValue["readCard"]>((book, cardId) => {
-    const { state: next, rewards } = validateCard(stateRef.current, book, cardId);
+  // Référence toujours à jour pour les actions (évite une dépendance sur state).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const answerQuestion = useCallback<GameContextValue["answerQuestion"]>((item, correct) => {
+    const { state: next, rewards } = recordQuizAnswer(stateRef.current, item, correct);
     setState(next);
     return rewards;
   }, []);
 
-  // Référence toujours à jour pour readCard (évite une dépendance sur state).
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const finishCardRead = useCallback<GameContextValue["finishCardRead"]>(
+    (book, cardId, perfectQuiz) => {
+      const { state: next, rewards } = recordCardRead(stateRef.current, book, cardId, perfectQuiz);
+      setState(next);
+      return rewards;
+    },
+    [],
+  );
 
   const rememberPosition = useCallback<GameContextValue["rememberPosition"]>(
     (bookId, cardId) => {
@@ -81,8 +93,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<GameContextValue>(
-    () => ({ state, readCard, rememberPosition, setDailyGoal, setTheme, resetProgress }),
-    [state, readCard, rememberPosition, setDailyGoal, setTheme, resetProgress],
+    () => ({
+      state,
+      answerQuestion,
+      finishCardRead,
+      rememberPosition,
+      setDailyGoal,
+      setTheme,
+      resetProgress,
+    }),
+    [state, answerQuestion, finishCardRead, rememberPosition, setDailyGoal, setTheme, resetProgress],
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

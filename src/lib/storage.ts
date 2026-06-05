@@ -14,6 +14,13 @@ export function defaultState(): GameState {
     completedBooks: [],
     unlockedBadges: [],
     stats: { morningReads: 0, bestDayCount: 0, todayDate: null, todayCount: 0 },
+    quiz: {
+      questionStates: {},
+      bestCorrectStreak: 0,
+      currentCorrectStreak: 0,
+      reviewCorrectTotal: 0,
+      perfectQuizCount: 0,
+    },
     settings: { dailyGoal: 1, theme: "system" },
   };
 }
@@ -30,6 +37,11 @@ export function loadState(): GameState {
       ...parsed,
       streak: { ...base.streak, ...parsed.streak },
       stats: { ...base.stats, ...parsed.stats },
+      quiz: {
+        ...base.quiz,
+        ...parsed.quiz,
+        questionStates: parsed.quiz?.questionStates ?? base.quiz.questionStates,
+      },
       settings: { ...base.settings, ...parsed.settings },
       progress: parsed.progress ?? base.progress,
       activeDays: parsed.activeDays ?? base.activeDays,

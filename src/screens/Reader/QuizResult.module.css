@@ -1,0 +1,100 @@
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  text-align: center;
+  padding: var(--space-6) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
+  position: relative;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--book-accent) 14%, var(--bg)), var(--bg));
+}
+
+.confetti {
+  position: absolute;
+  top: 30%;
+  font-size: 1.6rem;
+  pointer-events: none;
+}
+
+.scoreRing {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-card);
+}
+.scoreInner {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.scoreValue {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.scoreLabel {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.title {
+  font-size: 1.8rem;
+  margin-top: var(--space-2);
+}
+.xp {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent-text);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+  max-width: 100%;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+.badgeEmoji {
+  font-size: 1.1rem;
+}
+
+.continueBtn {
+  width: 100%;
+  max-width: 360px;
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--book-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow-card);
+  transition: transform 120ms ease;
+}
+.continueBtn:active {
+  transform: scale(0.97);
+}

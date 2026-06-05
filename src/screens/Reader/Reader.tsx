@@ -7,7 +7,11 @@ import { loadBook, loadBooksIndex } from "../../lib/books";
 import { useAsync } from "../../lib/useAsync";
 import { firstUnreadIndex } from "../../lib/selectors";
 import type { ValidationRewards } from "../../lib/gamification";
+import type { BadgeDef } from "../../lib/gamification";
+import { buildQuiz, type QuizItem } from "../../lib/quiz";
 import CardView from "./CardView";
+import QuizView from "./QuizView";
+import QuizResult from "./QuizResult";
 import EndOfBook from "./EndOfBook";
 import RewardBurst from "./RewardBurst";
 import { ArrowLeft, ArrowRight } from "../../components/icons";
@@ -15,13 +19,22 @@ import styles from "./Reader.module.css";
 
 const SWIPE_THRESHOLD = 80; // px
 
+type Phase = "reading" | "quiz" | "result";
+
+interface ResultData {
+  correct: number;
+  total: number;
+  xp: number;
+  badges: BadgeDef[];
+  bookCompleted: boolean;
+}
+
 export default function Reader() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
-  const { state, readCard, rememberPosition } = useGame();
+  const { state, answerQuestion, finishCardRead, rememberPosition } = useGame();
   const reduce = useReducedMotion();
 
-  // Charge le livre depuis l'index pour récupérer son `file`.
   const { data: book, loading, error } = useAsync(async () => {
     const idx = await loadBooksIndex();
     const entry = idx.books.find((b) => b.id === bookId);
@@ -34,9 +47,11 @@ export default function Reader() {
   const [direction, setDirection] = useState(0);
   const [ended, setEnded] = useState(false);
   const [reward, setReward] = useState<ValidationRewards | null>(null);
+  const [phase, setPhase] = useState<Phase>("reading");
+  const [quizItems, setQuizItems] = useState<QuizItem[]>([]);
+  const [result, setResult] = useState<ResultData | null>(null);
   const initialised = useRef(false);
 
-  // Position initiale : première carte non lue.
   useEffect(() => {
     if (book && !initialised.current) {
       setPage(firstUnreadIndex(state, book));
@@ -44,17 +59,16 @@ export default function Reader() {
     }
   }, [book, state]);
 
-  // Mémorise la position vue.
   useEffect(() => {
-    if (book && book.cards[page]) {
+    if (book && book.cards[page] && phase === "reading") {
       rememberPosition(book.id, book.cards[page].id);
     }
-  }, [book, page, rememberPosition]);
+  }, [book, page, phase, rememberPosition]);
 
   const goTo = useCallback(
     (next: number, dir: number) => {
       if (!book) return;
-      if (next < 0) return; // borne gauche : rebond géré par le drag élastique
+      if (next < 0) return;
       if (next >= book.cards.length) {
         setEnded(true);
         return;
@@ -74,32 +88,66 @@ export default function Reader() {
     [goTo, page],
   );
 
-  // Navigation clavier (desktop, cf. spec §7.2).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (ended) return;
+      if (ended || phase !== "reading") return;
       if (e.key === "ArrowLeft") goTo(page - 1, -1);
       else if (e.key === "ArrowRight") goTo(page + 1, 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goTo, page, ended]);
+  }, [goTo, page, ended, phase]);
 
+  // « J'ai lu cette carte » → lance le quiz (cf. spec §7.5).
   const onValidate = useCallback(() => {
     if (!book) return;
     const card = book.cards[page];
-    const r = readCard(book, card.id);
-    if (!r.alreadyRead) {
-      setReward(r);
-      if (r.bookCompleted) {
-        // Laisse jouer l'animation puis bascule sur l'écran de fin.
-        window.setTimeout(() => setEnded(true), reduce ? 0 : 900);
-      }
-    } else {
-      // Déjà lue : on avance simplement.
+    const readSet = new Set(state.progress[book.id]?.readCards ?? []);
+
+    // Carte déjà lue : on avance simplement (pas de nouveau quiz / XP).
+    if (readSet.has(card.id)) {
       goTo(page + 1, 1);
+      return;
     }
-  }, [book, page, readCard, goTo, reduce]);
+
+    const items = buildQuiz(book, card, state);
+    if (items.length === 0) {
+      // Aucune question valide → on valide la lecture directement.
+      const r = finishCardRead(book, card.id, false);
+      setReward(r);
+      if (r.bookCompleted) window.setTimeout(() => setEnded(true), reduce ? 0 : 900);
+      return;
+    }
+    setQuizItems(items);
+    setPhase("quiz");
+  }, [book, page, state, goTo, finishCardRead, reduce]);
+
+  // Fin du quiz → enregistre la lecture + bonus parfait, puis écran de résultat.
+  const onQuizComplete = useCallback(
+    (correctCount: number, quizXp: number, quizBadges: BadgeDef[]) => {
+      if (!book) return;
+      const card = book.cards[page];
+      const total = quizItems.length;
+      const perfect = correctCount === total && total > 0;
+      const r = finishCardRead(book, card.id, perfect);
+      setResult({
+        correct: correctCount,
+        total,
+        xp: quizXp + r.xpGained,
+        badges: [...quizBadges, ...r.newBadges],
+        bookCompleted: r.bookCompleted,
+      });
+      setPhase("result");
+    },
+    [book, page, quizItems.length, finishCardRead],
+  );
+
+  const onResultContinue = useCallback(() => {
+    setPhase("reading");
+    setQuizItems([]);
+    setResult(null);
+    goTo(page + 1, 1); // avance, ou déclenche l'écran de fin si c'était la dernière
+  }, [goTo, page]);
 
   if (loading) return <div className={styles.statusScreen}>Chargement du livre…</div>;
   if (error || !book)
@@ -128,24 +176,47 @@ export default function Reader() {
   }
 
   const card = book.cards[page];
+  const accent = book.accentColor;
+
+  if (phase === "quiz") {
+    return (
+      <QuizView
+        items={quizItems}
+        accent={accent}
+        answerQuestion={answerQuestion}
+        onComplete={onQuizComplete}
+      />
+    );
+  }
+
+  if (phase === "result" && result) {
+    return (
+      <QuizResult
+        correct={result.correct}
+        total={result.total}
+        xp={result.xp}
+        badges={result.badges}
+        accent={accent}
+        lastCard={page === book.cards.length - 1 || result.bookCompleted}
+        onContinue={onResultContinue}
+      />
+    );
+  }
+
   const readSet = new Set(state.progress[book.id]?.readCards ?? []);
   const isRead = readSet.has(card.id);
   const progress = (page + 1) / book.cards.length;
 
   const variants = {
     enter: (dir: number) =>
-      reduce
-        ? { opacity: 0 }
-        : { x: dir > 0 ? "100%" : "-100%", opacity: 0, scale: 0.96 },
+      reduce ? { opacity: 0 } : { x: dir > 0 ? "100%" : "-100%", opacity: 0, scale: 0.96 },
     center: { x: 0, opacity: 1, scale: 1 },
     exit: (dir: number) =>
-      reduce
-        ? { opacity: 0 }
-        : { x: dir > 0 ? "-100%" : "100%", opacity: 0, scale: 0.96 },
+      reduce ? { opacity: 0 } : { x: dir > 0 ? "-100%" : "100%", opacity: 0, scale: 0.96 },
   };
 
   return (
-    <div className={styles.screen} style={{ ["--book-accent" as string]: book.accentColor }}>
+    <div className={styles.screen} style={{ ["--book-accent" as string]: accent }}>
       <header className={styles.topbar}>
         <button className={styles.backBtn} aria-label="Retour" onClick={() => navigate("/")}>
           <ArrowLeft />

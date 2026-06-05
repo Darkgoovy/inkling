@@ -1,5 +1,14 @@
 // Modèle de données du contenu (lecture seule, cf. spec §4).
 
+/** Question de quiz QCM intégrée à une carte (cf. spec §4.4). */
+export interface Question {
+  id: string;
+  question: string;
+  choices: string[];
+  answerIndex: number;
+  explanation?: string;
+}
+
 export interface Card {
   id: string;
   order: number;
@@ -10,6 +19,7 @@ export interface Card {
   keyIdea: string;
   action: string;
   estimatedMinutes: number;
+  questions: Question[];
 }
 
 export interface Book {
@@ -47,6 +57,25 @@ export interface BookProgress {
   lastCardId: string | null;
 }
 
+/** État de révision espacée (Leitner) d'une question (cf. spec §7.6, §9.6). */
+export interface QuestionState {
+  box: number; // 1..5
+  dueDate: string; // YYYY-MM-DD
+  lastAnsweredDate: string | null;
+  lastCorrect: boolean;
+  timesSeen: number;
+  timesCorrect: number;
+  history: { date: string; correct: boolean }[];
+}
+
+export interface QuizState {
+  questionStates: Record<string, QuestionState>;
+  bestCorrectStreak: number;
+  currentCorrectStreak: number;
+  reviewCorrectTotal: number;
+  perfectQuizCount: number;
+}
+
 export interface GameState {
   version: number;
   lastBookId: string | null;
@@ -65,5 +94,6 @@ export interface GameState {
     todayDate: string | null;
     todayCount: number;
   };
+  quiz: QuizState;
   settings: { dailyGoal: number; theme: ThemePref };
 }
