@@ -9,6 +9,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // Service worker personnalisé (src/sw.ts) : précache + clic sur notification (§10.7).
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       includeAssets: ["icon.svg", "maskable-icon.svg"],
       manifest: {
         name: "Inkling — Cartes de lecture",
@@ -27,28 +31,13 @@ export default defineConfig({
           { src: "maskable-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
         ],
       },
-      workbox: {
+      injectManifest: {
         // Précache l'app ET le contenu des livres → tout fonctionne hors ligne.
         globPatterns: ["**/*.{js,css,html,svg,json,woff,woff2}"],
-        navigateFallback: "index.html",
-        runtimeCaching: [
-          {
-            // Polices Google : cache-first une fois récupérées.
-            urlPattern: ({ url }) =>
-              url.origin === "https://fonts.googleapis.com" ||
-              url.origin === "https://fonts.gstatic.com",
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
       devOptions: {
-        // Permet de tester le SW en dev.
         enabled: false,
+        type: "module",
       },
     }),
   ],

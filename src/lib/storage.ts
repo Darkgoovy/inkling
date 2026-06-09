@@ -21,7 +21,11 @@ export function defaultState(): GameState {
       reviewCorrectTotal: 0,
       perfectQuizCount: 0,
     },
-    settings: { dailyGoal: 1, theme: "system" },
+    settings: {
+      dailyGoal: 1,
+      theme: "system",
+      reminder: { enabled: false, time: "08:00", days: [0, 1, 2, 3, 4, 5, 6], skipIfDone: true },
+    },
   };
 }
 
@@ -42,7 +46,11 @@ export function loadState(): GameState {
         ...parsed.quiz,
         questionStates: parsed.quiz?.questionStates ?? base.quiz.questionStates,
       },
-      settings: { ...base.settings, ...parsed.settings },
+      settings: {
+        ...base.settings,
+        ...parsed.settings,
+        reminder: { ...base.settings.reminder, ...parsed.settings?.reminder },
+      },
       progress: parsed.progress ?? base.progress,
       activeDays: parsed.activeDays ?? base.activeDays,
       completedBooks: parsed.completedBooks ?? base.completedBooks,

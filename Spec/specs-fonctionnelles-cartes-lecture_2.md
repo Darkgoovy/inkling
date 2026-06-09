@@ -41,13 +41,14 @@ Lecteur régulier, autodidacte, qui veut transformer sa lecture passive en révi
 - Suivi de progression (par livre + global) et reprise au bon endroit.
 - Gamification riche : points (XP), niveaux, badges, série (streak).
 - Persistance **locale** de la progression sur l'appareil.
+- **Rappel quotidien local** (notification à heure choisie pour penser à lire sa carte du jour, voir §10.7).
 
 ### Exclu (v1) — pistes pour plus tard
 
 - Création / édition de cartes dans l'app.
 - Comptes utilisateurs et synchronisation multi-appareils.
 - Téléchargement de packs de cartes supplémentaires depuis l'app *(prévu architecturalement, voir §11)*.
-- Notifications push / rappels.
+- **Notifications push côté serveur** : envoi garanti même app fermée et sur toutes les plateformes (le rappel **local** est inclus en v1, §10.7 ; le push serveur est prévu architecturalement pour plus tard).
 - Partage social, mode hors-ligne avancé, recherche, favoris.
 
 ---
@@ -388,7 +389,16 @@ Stockées **localement** sur l'appareil (clé-valeur), séparées du contenu JSO
     },
     "bestCorrectStreak": 7
   },
-  "settings": { "dailyGoal": 1, "theme": "system" }
+  "settings": {
+    "dailyGoal": 1,
+    "theme": "system",
+    "reminder": {
+      "enabled": false,
+      "time": "08:00",
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "skipIfDone": true
+    }
+  }
 }
 ```
 
@@ -397,6 +407,7 @@ Stockées **localement** sur l'appareil (clé-valeur), séparées du contenu JSO
 - `quiz.questionStates` : état **par question** pour le système de Leitner (§7.6) — `box` (1–5), `dueDate` (prochaine échéance), `lastAnsweredDate`, `lastCorrect`, compteurs et **historique complet** des réponses (date + juste/faux). C'est ce qui permet de retenir quand on a répondu, et si c'était juste, pour prioriser les révisions.
 - `quiz.bestCorrectStreak` : meilleure série de bonnes réponses (pour le badge « En feu »).
 - `settings` : préférences modifiables depuis l'écran Réglages (`theme` ∈ `system` | `light` | `dark`).
+- `settings.reminder` : réglages du **rappel quotidien** (§10.7) — `enabled` (rappel actif), `time` (heure « HH:MM », locale), `days` (jours actifs, convention `getDay()` : `0`=dimanche … `6`=samedi), `skipIfDone` (ne pas notifier si l'objectif quotidien est déjà atteint). Aucune donnée n'est envoyée à un serveur : la planification est **locale**.
 
 > Aucune donnée n'est envoyée à un serveur en v1. Tout reste sur l'appareil.
 
@@ -417,6 +428,7 @@ Stockées **localement** sur l'appareil (clé-valeur), séparées du contenu JSO
 Accessible depuis la Bibliothèque (et/ou le Profil). Contient :
 
 - **Objectif quotidien** : sélecteur du nombre de cartes/jour (1 à 5).
+- **Rappel quotidien** (voir §10.7) : interrupteur d'activation ; si activé, sélecteur d'**heure** et choix des **jours** ; petite option « ne pas me rappeler si j'ai déjà lu ».
 - **Thème** : Système / Clair / Sombre.
 - **Données** (bas de page, zone discrète) : bouton **« Réinitialiser ma progression »** (avec confirmation), conformément au §8.
 - Optionnel : à propos / version de l'app.
@@ -431,6 +443,37 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 - **Lisibilité du feedback** : bonne réponse en vert, mauvaise signalée et **bonne réponse révélée**, `explanation` affichée sobrement.
 - Respect de `prefers-reduced-motion` : effets remplacés par de simples transitions de couleur.
 
+### 10.7 Rappel quotidien & notifications
+
+**But.** Aider à tenir l'habitude en rappelant, en douceur, de lire sa carte du jour à l'heure choisie. Le ton reste **bienveillant et non culpabilisant** (cohérent avec §9).
+
+#### 10.7.1 Réglages (dans l'écran Réglages, §10.5)
+
+- **Activer le rappel quotidien** : interrupteur on/off (`settings.reminder.enabled`).
+  - À la **première activation**, l'app demande la **permission de notification** du navigateur. Si l'utilisateur **refuse** (ou l'a déjà bloquée), l'interrupteur reste **désactivé** et un message discret explique comment réautoriser les notifications dans les réglages du navigateur/OS.
+- **Heure** (`settings.reminder.time`, défaut `08:00`) : sélecteur d'heure (HH:MM), en **heure locale** de l'appareil. Visible uniquement si le rappel est activé.
+- **Jours** (`settings.reminder.days`, défaut tous les jours) : choix des jours de la semaine (ex. raccourci « Tous les jours » / « En semaine » + sélection fine). Permet de limiter le rappel à certains jours.
+- **Ne pas me rappeler si j'ai déjà lu** (`settings.reminder.skipIfDone`, défaut activé) : si l'**objectif quotidien** (§9.5) est déjà atteint ce jour-là, le rappel du jour est **sauté**.
+
+#### 10.7.2 Contenu de la notification
+
+- **Titre** chaleureux et invitant (ex. « Votre carte du jour vous attend 📖 »).
+- **Corps** : affiche le **titre de la prochaine carte non lue** du **dernier livre consulté** (ex. « Suivant : *La règle des deux minutes* — Un rien peut tout changer »). Si aucun livre n'est en cours, invite simplement à **commencer un livre**.
+- **Anti-perte de série** : si une **série** 🔥 est en cours (§9.3), le message l'évoque de façon encourageante (ex. « 🔥 5 jours d'affilée — garde le rythme ! »), **sans dramatiser** un éventuel oubli.
+
+#### 10.7.3 Action au clic
+
+Un **tap sur la notification** ouvre (ou ramène au premier plan) l'application et la conduit directement à la **prochaine carte non lue du dernier livre consulté** — c'est-à-dire au même endroit que le bloc **« Reprendre »** de la Bibliothèque (route `\/read\/<lastBookId>`). Si aucun livre n'est en cours, ouverture sur la **Bibliothèque**.
+
+#### 10.7.4 Mécanique technique (local, « best-effort »)
+
+- Notifications **locales** via l'**API Notification** et le **service worker** (déjà présent pour le hors-ligne, §11). Aucune donnée n'est envoyée à un serveur.
+- **Planification** : l'app calcule la prochaine échéance due (prochain **jour sélectionné** à l'**heure** choisie, en sautant le jour si `skipIfDone` et objectif déjà atteint). Là où l'**API Notification Triggers** (`showTrigger` / `TimestampTrigger`) est disponible (navigateurs Chromium), la notification est programmée à l'avance et peut se déclencher **même app fermée**. Sinon, l'app reprogramme la prochaine occurrence **à chaque ouverture** (rappel « best-effort »).
+- **(Re)planification** à chaque démarrage de l'app et à chaque modification des réglages de rappel (et après chaque lecture validée, pour réévaluer `skipIfDone`).
+- **Permissions** : aucune notification sans consentement explicite ; si la permission est révoquée, l'app se comporte comme si le rappel était désactivé.
+- **Limites assumées et documentées** : sur **iOS** (PWA installée, iOS 16.4+) et sur les navigateurs sans Notification Triggers, le déclenchement à heure fixe **quand l'app est fermée n'est pas garanti**. Le rappel reste fiable lorsque l'app/onglet est ouvert ou en arrière-plan sur les plateformes compatibles.
+- **Évolutivité** : toute la logique de rappel est isolée derrière un module dédié, de sorte qu'un **backend de push** (Web Push + envoi planifié) pourra être branché ultérieurement **sans refonte**, pour un envoi garanti multi-plateforme (cf. §3, §11).
+
 ---
 
 ## 11. Contraintes & choix techniques (orientations)
@@ -440,6 +483,8 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 - **Index généré au build, pas à la main.** Un **script de build** (`build_books_index.py`, voir Annexe B) scanne `books/`, lit chaque fichier de livre, compte ses cartes et régénère `books.json`. Il est lancé avant chaque déploiement (par ex. via une étape `prebuild`). Conséquence : ajouter un livre = déposer son JSON dans `books/` puis relancer le build ; aucun index à maintenir manuellement.
   - *Remarque :* le navigateur ne pouvant pas lister un dossier sur un hébergement statique, la découverte des livres se fait au build et non au runtime.
 - Persistance de la progression en **local** (sur l'appareil), sans backend.
+- **Application installable & hors ligne (PWA)** : un **service worker** met l'app et le contenu en cache ; il sert aussi de support aux **rappels locaux** (§10.7).
+- **Rappels locaux sans backend** : notifications planifiées via l'API Notification + service worker (Notification Triggers où c'est disponible), avec une fiabilité « best-effort » selon la plateforme (§10.7). La logique est isolée derrière un module « rappels » pour brancher plus tard un **push serveur** (Web Push + planificateur) sans refonte.
 - **Évolutivité prévue** : le chargement de contenu est abstrait derrière une « source de livres ». En v1 cette source = JSON locaux ; demain elle pourra pointer vers des **livres téléchargeables** à l'unité depuis l'app sans refonte, le découpage 1 JSON/livre s'y prêtant directement.
 
 ---
@@ -451,6 +496,7 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 3. **Naviguer dans un livre.** Swipe gauche/droite pour avancer/reculer entre les cartes, avec animation de slide.
 4. **Consulter ma progression.** Profil : niveau, XP, série, **calendrier mensuel à tampons**, badges débloqués (lecture **et** quiz), livres terminés.
 5. **Terminer un livre.** Dernière carte lue + quiz fait → écran de félicitations + récompenses.
+6. **Être rappelé.** À l'heure choisie (ex. 8h), une notification m'invite à lire ; je tape dessus → l'app s'ouvre directement sur ma prochaine carte. Si j'ai déjà lu ce jour-là, pas de rappel (§10.7).
 
 ---
 
@@ -466,6 +512,7 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 8. **Quiz QCM** (§7.5) : déclenché après « J'ai lu », **obligatoire** ; 4–5 questions (2–3 carte courante + 2–3 révision) ; 4 choix par question (1 correcte). Réponse fausse → **bonne réponse révélée** puis on continue.
 9. **Révision espacée** (§7.6) : **système de Leitner** (boîtes 1→5, intervalles 1/2/4/7/15 j) ; bonne réponse monte d'une boîte, mauvaise renvoie en boîte 1 ; les questions ratées / les plus dues sont **prioritaires**.
 10. **Questions** : **intégrées à chaque carte** dans le JSON du livre (pas de fichier séparé) ; ~5 par carte ; le script d'index reste inchangé.
+11. **Rappel quotidien** (§10.7) : notification **locale** activable/désactivable, à **heure** et **jours** choisis ; ne notifie pas si l'objectif du jour est atteint ; le message annonce la prochaine carte et encourage la série ; le clic ouvre l'app sur la **prochaine carte du livre en cours**. Implémentation **locale d'abord** (best-effort, sans backend), architecture prête pour un **push serveur** ultérieur.
 
 ---
 
@@ -596,4 +643,4 @@ Comportement clé : ignore les fichiers JSON invalides ou incomplets (avec avert
 
 ---
 
-*Document de spécifications fonctionnelles — v1.5. Annexe A réécrite en mode « agentique » : l'agent (Claude Code) écrit directement le fichier du livre carte par carte, le valide et régénère l'index, en une seule passe et sans « continue » manuel. (v1.4 : ajout du quiz QCM après chaque carte avec révision espacée — système de Leitner ; questions intégrées aux cartes.)*
+*Document de spécifications fonctionnelles — v1.6. Ajout du **rappel quotidien local** (§10.7) : notification activable à heure et jours choisis, message annonçant la prochaine carte et encourageant la série, clic qui ouvre l'app sur la prochaine carte ; implémentation locale (best-effort), architecture prête pour un push serveur. (v1.5 : Annexe A réécrite en mode « agentique »* : l'agent (Claude Code) écrit directement le fichier du livre carte par carte, le valide et régénère l'index, en une seule passe et sans « continue » manuel. (v1.4 : ajout du quiz QCM après chaque carte avec révision espacée — système de Leitner ; questions intégrées aux cartes.)*

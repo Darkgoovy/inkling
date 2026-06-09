@@ -95,5 +95,20 @@ export interface GameState {
     todayCount: number;
   };
   quiz: QuizState;
-  settings: { dailyGoal: number; theme: ThemePref };
+  settings: {
+    dailyGoal: number;
+    theme: ThemePref;
+    reminder: ReminderSettings;
+  };
+}
+
+/** Réglages du rappel quotidien local (cf. spec §10.7). */
+export interface ReminderSettings {
+  enabled: boolean;
+  /** Heure locale au format "HH:MM". */
+  time: string;
+  /** Jours actifs, convention getDay() : 0=dimanche … 6=samedi. */
+  days: number[];
+  /** Ne pas notifier si l'objectif quotidien est déjà atteint. */
+  skipIfDone: boolean;
 }

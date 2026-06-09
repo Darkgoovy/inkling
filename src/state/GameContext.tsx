@@ -8,10 +8,11 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import type { Book, GameState, ThemePref } from "../types";
+import type { Book, GameState, ReminderSettings, ThemePref } from "../types";
 import { clearState, defaultState, loadState, saveState } from "../lib/storage";
 import { recordCardRead, type ValidationRewards } from "../lib/gamification";
 import { recordQuizAnswer, type AnswerRewards, type QuizItem } from "../lib/quiz";
+import { scheduleReminder } from "../lib/reminders";
 
 interface GameContextValue {
   state: GameState;
@@ -23,6 +24,8 @@ interface GameContextValue {
   rememberPosition: (bookId: string, cardId: string) => void;
   setDailyGoal: (goal: number) => void;
   setTheme: (theme: ThemePref) => void;
+  /** Met à jour les réglages du rappel quotidien (§10.7). */
+  setReminder: (patch: Partial<ReminderSettings>) => void;
   resetProgress: () => void;
 }
 
@@ -87,6 +90,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, settings: { ...s.settings, theme } }));
   }, []);
 
+  const setReminder = useCallback((patch: Partial<ReminderSettings>) => {
+    setState((s) => ({
+      ...s,
+      settings: { ...s.settings, reminder: { ...s.settings.reminder, ...patch } },
+    }));
+  }, []);
+
+  // (Re)programme le rappel quotidien quand l'état pertinent change (§10.7.4).
+  useEffect(() => {
+    void scheduleReminder(stateRef.current);
+  }, [
+    state.settings.reminder,
+    state.settings.dailyGoal,
+    state.lastBookId,
+    state.stats.todayCount,
+    state.stats.todayDate,
+    state.streak.count,
+  ]);
+
   const resetProgress = useCallback(() => {
     clearState();
     setState((s) => ({ ...defaultState(), settings: s.settings }));
@@ -100,9 +122,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
       rememberPosition,
       setDailyGoal,
       setTheme,
+      setReminder,
       resetProgress,
     }),
-    [state, answerQuestion, finishCardRead, rememberPosition, setDailyGoal, setTheme, resetProgress],
+    [
+      state,
+      answerQuestion,
+      finishCardRead,
+      rememberPosition,
+      setDailyGoal,
+      setTheme,
+      setReminder,
+      resetProgress,
+    ],
   );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
