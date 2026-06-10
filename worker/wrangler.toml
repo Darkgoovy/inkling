@@ -11,11 +11,12 @@ crons = ["*/5 * * * *"]
 #   wrangler kv namespace create SUBS
 [[kv_namespaces]]
 binding = "SUBS"
-id = "REMPLACE_PAR_TON_KV_ID"
+id = "22b3c034badd49f1a19357a8328575a9"
 
 [vars]
-VAPID_SUBJECT = "mailto:toi@exemple.com"
+# VAPID_SUBJECT (mailto de contact) est défini en SECRET pour ne pas exposer
+# l'email dans ce dépôt public :  wrangler secret put VAPID_SUBJECT
 ALLOW_ORIGIN = "https://darkgoovy.github.io"
 # Clé VAPID PUBLIQUE (publique, sans risque). La clé PRIVÉE se met en secret :
 #   wrangler secret put VAPID_PRIVATE_KEY
-VAPID_PUBLIC_KEY = "REMPLACE_PAR_TA_CLE_VAPID_PUBLIQUE"
+VAPID_PUBLIC_KEY = "BIe6JO7eNeSetk_zoIU6LQGqfd45hwtyHFW3OJlxhQoPtndA2Si1ayPsd38lYXJ3ZXClka8dCcH0yKbBewsMoLs"
