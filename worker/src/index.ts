@@ -134,7 +134,7 @@ function userLocalNow(nowUtcMs: number, tzOffsetMin: number) {
 async function sendPush(rec: SubRecord, env: Env): Promise<"ok" | "gone" | "error"> {
   try {
     const payload = await buildPushPayload(
-      { data: JSON.stringify(rec.next), options: { ttl: 3600 } },
+      { data: rec.next, options: { ttl: 3600 } },
       rec.subscription,
       { subject: env.VAPID_SUBJECT, publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY },
     );
