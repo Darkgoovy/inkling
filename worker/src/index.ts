@@ -30,7 +30,7 @@ interface SubRecord {
 }
 
 const KEY_PREFIX = "sub:";
-const SEND_WINDOW_MIN = 10; // tolérance autour de l'heure (cron toutes les 5 min)
+const SEND_WINDOW_MIN = 5; // tolérance autour de l'heure (cron chaque minute + anti-jitter)
 
 function cors(env: Env): Record<string, string> {
   return {

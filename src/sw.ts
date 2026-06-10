@@ -52,10 +52,11 @@ self.addEventListener("push", (event) => {
 });
 
 // Clic sur le rappel → ouvre/active l'app sur la prochaine carte (cf. spec §10.7.3).
+// On vise toujours /resume : l'app y résout EN LOCAL le dernier livre consulté
+// (évite tout chemin périmé venu du serveur).
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const path: string =
-    (event.notification.data && (event.notification.data as { path?: string }).path) || "/";
+  const path = "/resume";
 
   event.waitUntil(
     (async () => {

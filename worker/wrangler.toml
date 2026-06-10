@@ -3,9 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Cron : déclenche l'envoi des rappels toutes les 5 minutes (cf. spec §10.7.4).
+# Cron : déclenche l'envoi des rappels chaque minute (précision ~1-2 min).
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 # Stockage des abonnements. Remplace l'id par celui créé via :
 #   wrangler kv namespace create SUBS

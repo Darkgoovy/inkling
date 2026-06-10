@@ -4,6 +4,7 @@ import Library from "./screens/Library/Library";
 import Reader from "./screens/Reader/Reader";
 import Profile from "./screens/Profile/Profile";
 import Settings from "./screens/Settings/Settings";
+import Resume from "./screens/Resume";
 
 export default function App() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function App() {
     <div className="app-shell">
       <Routes>
         <Route path="/" element={<Library />} />
+        <Route path="/resume" element={<Resume />} />
         <Route path="/read/:bookId" element={<Reader />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
