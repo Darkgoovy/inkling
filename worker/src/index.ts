@@ -1,14 +1,18 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 
-// Worker Cloudflare : stockage des abonnements (KV) + envoi des rappels Web Push (Cron).
-// Cf. spec §10.7.4. Déploiement : voir worker/README.md.
+// Worker Cloudflare : abonnements Web Push + envoi des rappels (Cron). Cf. spec §10.7.4.
+//
+// Stockage : UNE seule clé KV ("subs") contenant une map { clientId: SubRecord }.
+// → le cron fait 1 `get` par minute (aucune opération `list`), et n'écrit que
+//   lorsqu'un envoi a réellement lieu. On reste très largement sous le gratuit
+//   (Workers : 100k req/j ; KV : 100k lectures, 1k écritures, 1k list /j).
 
 export interface Env {
   SUBS: KVNamespace;
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string; // secret
-  VAPID_SUBJECT: string; // ex. "mailto:toi@exemple.com"
-  ALLOW_ORIGIN: string; // ex. "https://darkgoovy.github.io"
+  VAPID_SUBJECT: string; // secret (mailto:)
+  ALLOW_ORIGIN: string;
 }
 
 interface PushSubscriptionJSON {
@@ -18,18 +22,19 @@ interface PushSubscriptionJSON {
 }
 
 interface SubRecord {
-  clientId: string;
   subscription: PushSubscriptionJSON;
   time: string; // "HH:MM" (heure locale de l'utilisateur)
   days: number[]; // getDay() : 0=dim … 6=sam
   tzOffsetMin: number; // Date.getTimezoneOffset() de l'utilisateur
   skipIfDone: boolean;
-  goalMetDate: string | null; // "YYYY-MM-DD" (jour où l'objectif a été atteint)
+  goalMetDate: string | null; // "YYYY-MM-DD"
   next: { title: string; body: string; path: string };
   lastSentDate?: string | null;
 }
 
-const KEY_PREFIX = "sub:";
+type SubMap = Record<string, SubRecord>;
+
+const STORE_KEY = "subs";
 const SEND_WINDOW_MIN = 5; // tolérance autour de l'heure (cron chaque minute + anti-jitter)
 
 function cors(env: Env): Record<string, string> {
@@ -48,6 +53,14 @@ function json(data: unknown, env: Env, status = 200): Response {
   });
 }
 
+async function readMap(env: Env): Promise<SubMap> {
+  return ((await env.SUBS.get(STORE_KEY, "json")) as SubMap | null) ?? {};
+}
+
+async function writeMap(env: Env, map: SubMap): Promise<void> {
+  await env.SUBS.put(STORE_KEY, JSON.stringify(map));
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(env) });
@@ -55,12 +68,14 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === "POST" && url.pathname === "/subscribe") {
-      const body = (await request.json().catch(() => null)) as Partial<SubRecord> | null;
+      const body = (await request.json().catch(() => null)) as
+        | (Partial<SubRecord> & { clientId?: string })
+        | null;
       if (!body?.clientId || !body.subscription?.endpoint) {
         return json({ error: "payload invalide" }, env, 400);
       }
-      const record: SubRecord = {
-        clientId: body.clientId,
+      const map = await readMap(env);
+      map[body.clientId] = {
         subscription: body.subscription as PushSubscriptionJSON,
         time: body.time ?? "08:00",
         days: Array.isArray(body.days) ? body.days : [0, 1, 2, 3, 4, 5, 6],
@@ -72,15 +87,21 @@ export default {
           body: "Reprenez votre lecture du jour.",
           path: "/",
         },
-        lastSentDate: null,
+        lastSentDate: map[body.clientId]?.lastSentDate ?? null,
       };
-      await env.SUBS.put(KEY_PREFIX + body.clientId, JSON.stringify(record));
+      await writeMap(env, map);
       return json({ ok: true }, env);
     }
 
     if (request.method === "POST" && url.pathname === "/unsubscribe") {
       const body = (await request.json().catch(() => null)) as { clientId?: string } | null;
-      if (body?.clientId) await env.SUBS.delete(KEY_PREFIX + body.clientId);
+      if (body?.clientId) {
+        const map = await readMap(env);
+        if (map[body.clientId]) {
+          delete map[body.clientId];
+          await writeMap(env, map);
+        }
+      }
       return json({ ok: true }, env);
     }
 
@@ -88,37 +109,32 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
+    const map = await readMap(env);
     const now = Date.now();
-    let cursor: string | undefined;
+    let changed = false;
 
-    do {
-      const list = await env.SUBS.list({ prefix: KEY_PREFIX, cursor });
-      cursor = list.list_complete ? undefined : list.cursor;
+    for (const [clientId, rec] of Object.entries(map)) {
+      const { day, minutes, dateStr } = userLocalNow(now, rec.tzOffsetMin);
+      if (!rec.days.includes(day)) continue;
 
-      for (const { name } of list.keys) {
-        const raw = await env.SUBS.get(name);
-        if (!raw) continue;
-        const rec = JSON.parse(raw) as SubRecord;
+      const [h, m] = rec.time.split(":").map(Number);
+      const target = (h || 0) * 60 + (m || 0);
+      if (minutes < target || minutes >= target + SEND_WINDOW_MIN) continue;
 
-        const { day, minutes, dateStr } = userLocalNow(now, rec.tzOffsetMin);
-        if (!rec.days.includes(day)) continue;
+      if (rec.lastSentDate === dateStr) continue; // déjà envoyé aujourd'hui
+      if (rec.skipIfDone && rec.goalMetDate === dateStr) continue; // objectif déjà atteint
 
-        const [h, m] = rec.time.split(":").map(Number);
-        const target = (h || 0) * 60 + (m || 0);
-        if (minutes < target || minutes >= target + SEND_WINDOW_MIN) continue;
-
-        if (rec.lastSentDate === dateStr) continue; // déjà envoyé aujourd'hui
-        if (rec.skipIfDone && rec.goalMetDate === dateStr) continue; // objectif déjà atteint
-
-        const sent = await sendPush(rec, env);
-        if (sent === "gone") {
-          await env.SUBS.delete(name);
-        } else if (sent === "ok") {
-          rec.lastSentDate = dateStr;
-          await env.SUBS.put(name, JSON.stringify(rec));
-        }
+      const result = await sendPush(rec, env);
+      if (result === "gone") {
+        delete map[clientId];
+        changed = true;
+      } else if (result === "ok") {
+        rec.lastSentDate = dateStr;
+        changed = true;
       }
-    } while (cursor);
+    }
+
+    if (changed) await writeMap(env, map);
   },
 };
 
