@@ -12,7 +12,7 @@ import type { Book, GameState, ReminderSettings, ThemePref } from "../types";
 import { clearState, defaultState, loadState, saveState } from "../lib/storage";
 import { recordCardRead, type ValidationRewards } from "../lib/gamification";
 import { recordQuizAnswer, type AnswerRewards, type QuizItem } from "../lib/quiz";
-import { scheduleReminder } from "../lib/reminders";
+import { syncReminder } from "../lib/reminders";
 
 interface GameContextValue {
   state: GameState;
@@ -97,9 +97,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  // (Re)programme le rappel quotidien quand l'état pertinent change (§10.7.4).
+  // (Re)synchronise le rappel quotidien quand l'état pertinent change (§10.7.4).
   useEffect(() => {
-    void scheduleReminder(stateRef.current);
+    void syncReminder(stateRef.current);
   }, [
     state.settings.reminder,
     state.settings.dailyGoal,

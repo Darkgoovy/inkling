@@ -1,0 +1,21 @@
+name = "inkling-push"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Cron : déclenche l'envoi des rappels toutes les 5 minutes (cf. spec §10.7.4).
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Stockage des abonnements. Remplace l'id par celui créé via :
+#   wrangler kv namespace create SUBS
+[[kv_namespaces]]
+binding = "SUBS"
+id = "REMPLACE_PAR_TON_KV_ID"
+
+[vars]
+VAPID_SUBJECT = "mailto:toi@exemple.com"
+ALLOW_ORIGIN = "https://darkgoovy.github.io"
+# Clé VAPID PUBLIQUE (publique, sans risque). La clé PRIVÉE se met en secret :
+#   wrangler secret put VAPID_PRIVATE_KEY
+VAPID_PUBLIC_KEY = "REMPLACE_PAR_TA_CLE_VAPID_PUBLIQUE"

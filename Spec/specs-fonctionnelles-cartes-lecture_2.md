@@ -41,14 +41,13 @@ Lecteur régulier, autodidacte, qui veut transformer sa lecture passive en révi
 - Suivi de progression (par livre + global) et reprise au bon endroit.
 - Gamification riche : points (XP), niveaux, badges, série (streak).
 - Persistance **locale** de la progression sur l'appareil.
-- **Rappel quotidien local** (notification à heure choisie pour penser à lire sa carte du jour, voir §10.7).
+- **Rappel quotidien** (notification à heure/jours choisis pour penser à lire sa carte du jour, voir §10.7) — via **Web Push** (Cloudflare Worker) avec repli local.
 
 ### Exclu (v1) — pistes pour plus tard
 
 - Création / édition de cartes dans l'app.
 - Comptes utilisateurs et synchronisation multi-appareils.
 - Téléchargement de packs de cartes supplémentaires depuis l'app *(prévu architecturalement, voir §11)*.
-- **Notifications push côté serveur** : envoi garanti même app fermée et sur toutes les plateformes (le rappel **local** est inclus en v1, §10.7 ; le push serveur est prévu architecturalement pour plus tard).
 - Partage social, mode hors-ligne avancé, recherche, favoris.
 
 ---
@@ -465,14 +464,28 @@ Le quiz contraste volontairement avec la lecture (calme et pastel) par une ambia
 
 Un **tap sur la notification** ouvre (ou ramène au premier plan) l'application et la conduit directement à la **prochaine carte non lue du dernier livre consulté** — c'est-à-dire au même endroit que le bloc **« Reprendre »** de la Bibliothèque (route `\/read\/<lastBookId>`). Si aucun livre n'est en cours, ouverture sur la **Bibliothèque**.
 
-#### 10.7.4 Mécanique technique (local, « best-effort »)
+#### 10.7.4 Mécanique technique (Web Push via Cloudflare Worker)
 
-- Notifications **locales** via l'**API Notification** et le **service worker** (déjà présent pour le hors-ligne, §11). Aucune donnée n'est envoyée à un serveur.
-- **Planification** : l'app calcule la prochaine échéance due (prochain **jour sélectionné** à l'**heure** choisie, en sautant le jour si `skipIfDone` et objectif déjà atteint). Là où l'**API Notification Triggers** (`showTrigger` / `TimestampTrigger`) est disponible (navigateurs Chromium), la notification est programmée à l'avance et peut se déclencher **même app fermée**. Sinon, l'app reprogramme la prochaine occurrence **à chaque ouverture** (rappel « best-effort »).
-- **(Re)planification** à chaque démarrage de l'app et à chaque modification des réglages de rappel (et après chaque lecture validée, pour réévaluer `skipIfDone`).
-- **Permissions** : aucune notification sans consentement explicite ; si la permission est révoquée, l'app se comporte comme si le rappel était désactivé.
-- **Limites assumées et documentées** : sur **iOS** (PWA installée, iOS 16.4+) et sur les navigateurs sans Notification Triggers, le déclenchement à heure fixe **quand l'app est fermée n'est pas garanti**. Le rappel reste fiable lorsque l'app/onglet est ouvert ou en arrière-plan sur les plateformes compatibles.
-- **Évolutivité** : toute la logique de rappel est isolée derrière un module dédié, de sorte qu'un **backend de push** (Web Push + envoi planifié) pourra être branché ultérieurement **sans refonte**, pour un envoi garanti multi-plateforme (cf. §3, §11).
+Le déclenchement **app fermée** repose sur le **Web Push** (un serveur pousse la notification au navigateur, qui l'affiche via le service worker). C'est la seule mécanique web fiable une fois l'app fermée — la planification purement locale (ex. l'API expérimentale *Notification Triggers*) n'étant pas disponible/fiable sur les navigateurs cibles.
+
+**Architecture (sans serveur applicatif lourd, multi-utilisateur) :**
+
+- **Backend = un Cloudflare Worker** (déployé séparément de l'hébergement statique), avec :
+  - un stockage **KV** (un enregistrement par abonnement) ;
+  - des routes `POST /subscribe` et `POST /unsubscribe` (avec CORS pour l'origine de l'app) ;
+  - un **Cron Trigger** (toutes les ~5 minutes) qui, pour chaque abonné, calcule son **heure locale** (via le fuseau stocké) et, si le jour est sélectionné et l'heure due (et l'objectif pas déjà atteint si `skipIfDone`), **envoie un Web Push** signé **VAPID**. Un `lastSentDate` évite tout doublon.
+- **Côté app** :
+  - À l'activation : permission de notification puis abonnement `pushManager.subscribe()` avec la **clé VAPID publique** ; l'app envoie au Worker l'**abonnement** + ses **réglages** (heure, jours, **fuseau horaire**) + un **résumé local** (titre de la prochaine carte, route, date de dernière lecture / objectif atteint). Le serveur **ne lit jamais** la progression : c'est l'app qui la lui **résume** pour composer le message et appliquer `skipIfDone`.
+  - **Synchronisation** à chaque démarrage, changement de réglage et lecture validée.
+  - Le **service worker** reçoit l'événement `push` et affiche la notification ; le `notificationclick` (§10.7.3) ouvre la prochaine carte.
+- **Clés** : la **clé VAPID publique** (et l'URL du Worker) sont embarquées dans l'app (publiques, sans risque) ; la **clé privée** reste un **secret du Worker** (jamais commitée).
+- **Repli local** : si la permission n'est pas accordée ou si le push n'est pas configuré/disponible, l'app retombe sur un rappel **local best-effort** (minuteur valable tant que l'app est ouverte).
+
+**Données stockées en ligne (strict minimum) :** l'abonnement push (endpoint + clés), l'heure, les jours, le fuseau, et le **résumé** (prochaine carte + date de dernière lecture). Aucune autre donnée de progression ne quitte l'appareil.
+
+**Permissions & limites assumées :** aucune notification sans consentement explicite. Sur **iOS**, le Web Push n'arrive que si la **PWA est installée** (16.4+). Précision : cron toutes les ~5 min → notification à **±5 min** de l'heure choisie.
+
+**Évolutivité :** toute la logique est isolée derrière un module « rappels » côté app et un Worker côté serveur — on peut remplacer Cloudflare par un autre fournisseur (Firebase/FCM, OneSignal…) sans toucher au reste.
 
 ---
 
@@ -484,7 +497,7 @@ Un **tap sur la notification** ouvre (ou ramène au premier plan) l'application 
   - *Remarque :* le navigateur ne pouvant pas lister un dossier sur un hébergement statique, la découverte des livres se fait au build et non au runtime.
 - Persistance de la progression en **local** (sur l'appareil), sans backend.
 - **Application installable & hors ligne (PWA)** : un **service worker** met l'app et le contenu en cache ; il sert aussi de support aux **rappels locaux** (§10.7).
-- **Rappels locaux sans backend** : notifications planifiées via l'API Notification + service worker (Notification Triggers où c'est disponible), avec une fiabilité « best-effort » selon la plateforme (§10.7). La logique est isolée derrière un module « rappels » pour brancher plus tard un **push serveur** (Web Push + planificateur) sans refonte.
+- **Rappels par Web Push** (§10.7) : un **Cloudflare Worker** (KV + Cron Trigger, déployé séparément) envoie des notifications **VAPID** à l'heure choisie, fiables **app fermée** sur Android/Chrome/desktop. Clé VAPID publique embarquée dans l'app, clé privée en secret du Worker. **Repli local** (best-effort, app ouverte) si le push n'est pas accordé/configuré. Module isolé → fournisseur de push interchangeable.
 - **Évolutivité prévue** : le chargement de contenu est abstrait derrière une « source de livres ». En v1 cette source = JSON locaux ; demain elle pourra pointer vers des **livres téléchargeables** à l'unité depuis l'app sans refonte, le découpage 1 JSON/livre s'y prêtant directement.
 
 ---
@@ -512,7 +525,7 @@ Un **tap sur la notification** ouvre (ou ramène au premier plan) l'application 
 8. **Quiz QCM** (§7.5) : déclenché après « J'ai lu », **obligatoire** ; 4–5 questions (2–3 carte courante + 2–3 révision) ; 4 choix par question (1 correcte). Réponse fausse → **bonne réponse révélée** puis on continue.
 9. **Révision espacée** (§7.6) : **système de Leitner** (boîtes 1→5, intervalles 1/2/4/7/15 j) ; bonne réponse monte d'une boîte, mauvaise renvoie en boîte 1 ; les questions ratées / les plus dues sont **prioritaires**.
 10. **Questions** : **intégrées à chaque carte** dans le JSON du livre (pas de fichier séparé) ; ~5 par carte ; le script d'index reste inchangé.
-11. **Rappel quotidien** (§10.7) : notification **locale** activable/désactivable, à **heure** et **jours** choisis ; ne notifie pas si l'objectif du jour est atteint ; le message annonce la prochaine carte et encourage la série ; le clic ouvre l'app sur la **prochaine carte du livre en cours**. Implémentation **locale d'abord** (best-effort, sans backend), architecture prête pour un **push serveur** ultérieur.
+11. **Rappel quotidien** (§10.7) : notification activable/désactivable, à **heure** et **jours** choisis ; ne notifie pas si l'objectif du jour est atteint ; le message annonce la prochaine carte et encourage la série ; le clic ouvre l'app sur la **prochaine carte du livre en cours**. Livraison par **Web Push** via un **Cloudflare Worker** (VAPID, KV, Cron toutes les ~5 min), fiable app fermée ; **repli local** si le push n'est pas accordé/configuré. Données en ligne réduites au minimum (abonnement, heure/jours/fuseau, résumé de la prochaine carte).
 
 ---
 
@@ -643,4 +656,4 @@ Comportement clé : ignore les fichiers JSON invalides ou incomplets (avec avert
 
 ---
 
-*Document de spécifications fonctionnelles — v1.6. Ajout du **rappel quotidien local** (§10.7) : notification activable à heure et jours choisis, message annonçant la prochaine carte et encourageant la série, clic qui ouvre l'app sur la prochaine carte ; implémentation locale (best-effort), architecture prête pour un push serveur. (v1.5 : Annexe A réécrite en mode « agentique »* : l'agent (Claude Code) écrit directement le fichier du livre carte par carte, le valide et régénère l'index, en une seule passe et sans « continue » manuel. (v1.4 : ajout du quiz QCM après chaque carte avec révision espacée — système de Leitner ; questions intégrées aux cartes.)*
+*Document de spécifications fonctionnelles — v1.7. Le **rappel quotidien** (§10.7) passe au **Web Push** via un **Cloudflare Worker** (VAPID + KV + Cron), fiable même app fermée, avec repli local ; données en ligne minimales. (v1.6. Ajout du **rappel quotidien local** (§10.7) : notification activable à heure et jours choisis, message annonçant la prochaine carte et encourageant la série, clic qui ouvre l'app sur la prochaine carte ; implémentation locale (best-effort), architecture prête pour un push serveur. (v1.5 : Annexe A réécrite en mode « agentique »* : l'agent (Claude Code) écrit directement le fichier du livre carte par carte, le valide et régénère l'index, en une seule passe et sans « continue » manuel. (v1.4 : ajout du quiz QCM après chaque carte avec révision espacée — système de Leitner ; questions intégrées aux cartes.)*

@@ -32,6 +32,25 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Réception d'un Web Push → affiche la notification (cf. spec §10.7.4).
+self.addEventListener("push", (event) => {
+  let payload: { title?: string; body?: string; path?: string } = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+  const title = payload.title || "Votre carte du jour vous attend 📖";
+  const options: NotificationOptions = {
+    body: payload.body || "Reprenez votre lecture du jour.",
+    tag: "inkling-daily",
+    icon: "icon.svg",
+    badge: "icon.svg",
+    data: { path: payload.path || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
 // Clic sur le rappel → ouvre/active l'app sur la prochaine carte (cf. spec §10.7.3).
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
